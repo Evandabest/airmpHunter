@@ -1,0 +1,6 @@
+selenium
+undetected_chromedriver
+langchain-text-splitters
+langchain-google-genai
+google-generativeai
+python-dotenv
