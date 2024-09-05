@@ -4,3 +4,4 @@ langchain-text-splitters
 langchain-google-genai
 google-generativeai
 python-dotenv
+pinecone 

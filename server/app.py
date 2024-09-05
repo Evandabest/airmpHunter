@@ -6,34 +6,43 @@ from selenium.webdriver.chrome.service import Service
 import undetected_chromedriver as uc
 import os
 from dotenv import load_dotenv
+from pinecone import Pinecone, ServerlessSpec
+import time
 
-
+# Load environment variables
 load_dotenv()
 
+# Initialize Google Generative AI and Pinecone
 api_key = os.environ.get("GOOGLE_API_KEY")
 if api_key is None:
     raise ValueError("GOOGLE_API_KEY environment variable not found.")
 genai.configure(api_key=api_key)
 
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 
+# Initialize Pinecone
+pinecone = Pinecone(api_key=pinecone_api_key, environment=pinecone_environment)
+index_name = pinecone.Index("reviews")
+
+# Initialize LLM and Embeddings
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
+# Setup Chrome WebDriver
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 driver = uc.Chrome(options=chrome_options, service=Service())
 
-def main():
-    link = input("Enter the professor's link: ")
+def scrape_reviews(link):
     driver.get(link)
-
+    time.sleep(5)  # Wait for the page to load
+    
     name = driver.find_element(By.CLASS_NAME, "NameTitle__Name-dowf0z-0").text
     subject = driver.find_element(By.CLASS_NAME, "TeacherDepartment__StyledDepartmentLink-fl79e8-0").text
 
     allReviews = driver.find_elements(By.CLASS_NAME, "Rating__RatingBody-sc-1rhvpxz-0")
-    print(f"Found {len(allReviews)} reviews")
-
     reviews = []
     for element in allReviews:
         rating_values = element.find_elements(By.CLASS_NAME, "RatingValues__StyledRatingValues-sc-6dc747-0")
@@ -59,10 +68,35 @@ def main():
             "comment": comment
         })
 
-    print(f"Total reviews scraped: {len(reviews)}")
-    print(reviews)
+    return reviews
 
+def create_and_insert_embeddings(reviews):
+    vectors = []
+    for i, review in enumerate(reviews):
+        review_text = review['comment']
+        embedding = embeddings.embed_documents([review_text])[0]
+        vectors.append({
+            'id': f'{review["name"]}_review-{i}',
+            'values': embedding,
+            'metadata': {
+                'name': review['name'],
+                'subject': review['subject'],
+                'quality': review['quality'],
+                'difficulty': review['difficulty'],
+                'comment': review['comment']
+            }
+        })
+        print(f"Review {i} embedded.")
+
+    index_name.upsert(vectors)
+
+def main():
+    link = input("Enter the professor's link: ")
+    reviews = scrape_reviews(link)
+    create_and_insert_embeddings(reviews)
     driver.quit()
+    print("Reviews have been scraped, embedded, and inserted into Pinecone.")
 
 if __name__ == "__main__":
     main()
+ 
