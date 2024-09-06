@@ -1,11 +1,12 @@
 "use client"
-import { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export default function Home() {
   const [chat, setChat] = useState([
     { role: "bot", text: "Welcome to HunterMatch! How can I help you today?" },
   ]);
   const [input, setInput] = useState("");
+  const chatContainerRef = useRef(null);
 
   const handleSendMessage = async () => {
     if (input === "") {
@@ -19,27 +20,41 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ question: input }),
       });
-      console.log("Response:", response); 
+      console.log("Response:", response);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setChat((prevChat) => [...prevChat, { role: "bot", text: data.message }]);
+      
+      if (data.success) {
+        setChat((prevChat) => [...prevChat, { role: "bot", text: data.data }]);
+      } else {
+        throw new Error(data.message || "An error occurred");
+      }
     } catch (error) {
       console.error("Error fetching chat response:", error);
       setChat((prevChat) => [...prevChat, { role: "bot", text: "Sorry, something went wrong." }]);
     }
   };
 
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      (chatContainerRef.current as HTMLElement).scrollTop = (chatContainerRef.current as HTMLElement).scrollHeight;
+    }
+  }, [chat]);
+
   return (
     <div className="flex flex-col h-screen bg-purple-600">
       <header className="bg-purple-700 py-4">
         <h1 className="text-white text-2xl font-bold text-center">Hunter Match</h1>
       </header>
-      <main className="flex-grow flex flex-col p-4 bg-gray-100">
-        <div className="flex-grow overflow-y-scroll mb-4 bg-white rounded-lg shadow-md p-4">
+      <main className="flex-grow flex flex-col bg-gray-100">
+        <div 
+          ref={chatContainerRef}
+          className="flex-grow overflow-y-auto bg-white shadow-md p-4"
+        >
           {chat.map((message, index) => (
             <div
               key={index}
@@ -62,7 +77,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="flex">
+        <div className="flex p-4 bg-gray-100">
           <input
             type="text"
             value={input}
