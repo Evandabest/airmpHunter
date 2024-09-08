@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
 
 export default function Home() {
   const [chat, setChat] = useState([
@@ -51,7 +52,7 @@ export default function Home() {
         <h1 className="text-white text-2xl font-bold text-center">Hunter Match</h1>
       </header>
       <main className="flex-grow flex flex-col bg-gray-100">
-        <div 
+        <div
           ref={chatContainerRef}
           className="flex-grow overflow-y-auto bg-white shadow-md p-4"
         >
@@ -72,7 +73,9 @@ export default function Home() {
                 <p className="text-sm font-semibold mb-1 text-purple-700">
                   {message.role === "user" ? "Hunter Student" : "Hunter bot"}
                 </p>
-                <p className="text-black">{message.text}</p>
+                <ReactMarkdown className="text-black prose max-w-none">
+                  {message.text}
+                </ReactMarkdown>
               </div>
             </div>
           ))}
