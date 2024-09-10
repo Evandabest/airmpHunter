@@ -7,7 +7,7 @@ export default function Home() {
     { role: "bot", text: "Welcome to HunterMatch! How can I help you today?" },
   ]);
   const [input, setInput] = useState("");
-  const chatContainerRef = useRef(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSendMessage = async () => {
     if (input === "") {
@@ -28,7 +28,6 @@ export default function Home() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
       if (data.success) {
         setChat((prevChat) => [...prevChat, { role: "bot", text: data.data }]);
       } else {
@@ -42,7 +41,7 @@ export default function Home() {
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      (chatContainerRef.current as HTMLElement).scrollTop = (chatContainerRef.current as HTMLElement).scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chat]);
 
